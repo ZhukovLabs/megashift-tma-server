@@ -25,6 +25,7 @@ async function bootstrap() {
 
   if (isDev) {
     allowedOrigins.push('http://localhost:3000');
+    allowedOrigins.push('http://localhost:5173');
   }
 
   app.enableCors({

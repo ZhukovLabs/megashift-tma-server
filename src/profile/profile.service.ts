@@ -22,6 +22,7 @@ export class ProfileService {
         patronymic: true,
         createdAt: true,
         timezone: true,
+        notifyBeforeMinutes: true,
       },
     });
 
@@ -47,6 +48,7 @@ export class ProfileService {
         patronymic: true,
         createdAt: true,
         timezone: true,
+        notifyBeforeMinutes: true,
       },
     });
   }
