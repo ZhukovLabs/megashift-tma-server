@@ -31,6 +31,19 @@ type CombinedStats = {
 export class StatisticService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private calculateHours(start: Date | null, end: Date | null): number {
+    if (!start || !end) return 0;
+
+    let diffMs = end.getTime() - start.getTime();
+
+    // Если разница отрицательная, значит смена перешла через полночь (на след. день)
+    if (diffMs < 0) {
+      diffMs += 24 * 60 * 60 * 1000;
+    }
+
+    return diffMs / (1000 * 60 * 60);
+  }
+
   async getCombinedStats(
     userId: string,
     year: number,
@@ -58,7 +71,6 @@ export class StatisticService {
       }),
     ]);
 
-    const templatesMap = new Map(templates.map((t) => [t.id, t]));
     const countMap = new Map<string | null, number>();
     const hoursMap = new Map<string | null, number>();
 
@@ -68,8 +80,8 @@ export class StatisticService {
 
       const start = shift.actualStartTime ?? shift.shiftTemplate?.startTime;
       const end = shift.actualEndTime ?? shift.shiftTemplate?.endTime;
-      const hours =
-        start && end ? (end.getTime() - start.getTime()) / (1000 * 60 * 60) : 0;
+      
+      const hours = this.calculateHours(start, end);
       hoursMap.set(templateId, (hoursMap.get(templateId) ?? 0) + hours);
     }
 
@@ -221,8 +233,7 @@ export class StatisticService {
       const start = shift.actualStartTime ?? shift.shiftTemplate?.startTime;
       const end = shift.actualEndTime ?? shift.shiftTemplate?.endTime;
 
-      const hours =
-        start && end ? (end.getTime() - start.getTime()) / (1000 * 60 * 60) : 0;
+      const hours = this.calculateHours(start, end);
 
       const key = shift.shiftTemplateId ?? null;
       hoursMap.set(key, (hoursMap.get(key) ?? 0) + hours);
@@ -282,6 +293,9 @@ export class StatisticService {
       return { salary: 0, typeSalary: 'UNKNOWN' };
     }
 
+    const startDate = new Date(Date.UTC(year, month - 1, 1));
+    const endDate = new Date(Date.UTC(year, month, 1));
+
     let totalSalary = 0;
 
     if (user.typeSalary === 'MONTHLY') {
@@ -291,8 +305,8 @@ export class StatisticService {
         where: {
           ownerId: userId,
           date: {
-            gte: new Date(Date.UTC(year, month - 1, 1)),
-            lt: new Date(Date.UTC(year, month, 1)),
+            gte: startDate,
+            lt: endDate,
           },
         },
       });
@@ -302,8 +316,8 @@ export class StatisticService {
         where: {
           ownerId: userId,
           date: {
-            gte: new Date(Date.UTC(year, month - 1, 1)),
-            lt: new Date(Date.UTC(year, month, 1)),
+            gte: startDate,
+            lt: endDate,
           },
         },
         include: {
@@ -315,9 +329,7 @@ export class StatisticService {
       for (const shift of shifts) {
         const start = shift.actualStartTime ?? shift.shiftTemplate?.startTime;
         const end = shift.actualEndTime ?? shift.shiftTemplate?.endTime;
-        if (start && end) {
-          totalHours += (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-        }
+        totalHours += this.calculateHours(start, end);
       }
       totalSalary = totalHours * user.salary;
     }
