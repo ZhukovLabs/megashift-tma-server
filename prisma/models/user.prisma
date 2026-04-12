@@ -18,8 +18,8 @@ model User {
   surname    String
   patronymic String?
 
-  timezone String @default("UTC")
-  notifyBeforeMinutes Int @default(30) @map("notify_before_minutes")
+  timezone            String @default("UTC")
+  notifyBeforeMinutes Int    @default(0) @map("notify_before_minutes")
 
   salary     Float?
   typeSalary SalaryType?
