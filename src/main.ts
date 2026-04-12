@@ -2,6 +2,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { TmaGuard } from './utils/guards/tma.guard';
+import { MaintenanceGuard } from './utils/guards/maintenance.guard';
 import { WinstonLogger } from './logger/winston-logger.service';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -67,7 +68,8 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalGuards(new TmaGuard(excludePaths));
+  // Сначала проверяем режим обслуживания, потом авторизацию
+  app.useGlobalGuards(new MaintenanceGuard(), new TmaGuard(excludePaths));
 
   const port = config.get<string | number>('PORT', 8000);
   await app.listen(port, '0.0.0.0');
