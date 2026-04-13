@@ -132,7 +132,7 @@ export class StatisticService {
       shifts: shiftStats,
       hours: hoursStats,
       salary: {
-        salary: totalSalary,
+        salary: user?.salary ?? 0,  // Return RATE, not total
         typeSalary: user?.typeSalary ?? 'UNKNOWN',
         maxSalary: user?.maxSalary ?? null,
       },
