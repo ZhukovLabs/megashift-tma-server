@@ -49,30 +49,31 @@ export class ShiftNotificationService {
           const template = shift.shiftTemplate;
           if (!template) continue;
 
-          // 1. Получаем "локальное" время, которое ввел пользователь, конвертируя UTC обратно в его TZ
-          const zonedStartTime = toZonedTime(template.startTime, timezone);
-          const hours = zonedStartTime.getHours();
-          const minutes = zonedStartTime.getMinutes();
+          // 1. Получаем часы и минуты начала смены из template.startTime
+          // template.startTime хранится как UTC-время, но представляет "настенное" время пользователя
+          const hours = template.startTime.getUTCHours();
+          const minutes = template.startTime.getUTCMinutes();
 
-          // 2. Создаем дату начала смены в локальном времени пользователя
+          // 2. Получаем дату смены (shift.date хранится как UTC midnight)
           const shiftDate = new Date(shift.date);
-          const shiftStartLocal = new Date(
-            shiftDate.getUTCFullYear(),
-            shiftDate.getUTCMonth(),
-            shiftDate.getUTCDate(),
-            hours,
-            minutes,
-            0,
-          );
-          
-          // 3. Конвертируем это локальное время в UTC для сравнения с системным временем
-          const shiftStartUTC = fromZonedTime(shiftStartLocal, timezone);
+          const year = shiftDate.getUTCFullYear();
+          const month = shiftDate.getUTCMonth();
+          const day = shiftDate.getUTCDate();
+
+          // 3. Создаем дату-время начала смены как "настенное" время в таймзоне пользователя
+          // Например, если смена 15 января в 09:00 в Europe/Moscow,
+          // то shiftStartWallClock = 2025-01-15T09:00:00 (без таймзоны, но подразумевается Europe/Moscow)
+          const shiftStartWallClock = new Date(year, month, day, hours, minutes, 0);
+
+          // 4. Конвертируем "настенное" время из таймзоны пользователя в UTC
+          const shiftStartUTC = fromZonedTime(shiftStartWallClock, timezone);
 
           const diffMs = shiftStartUTC.getTime() - now.getTime();
           const minutesUntilShift = Math.floor(diffMs / 60000);
 
-          console.log(`[ShiftNotification] User ${userId}, Shift "${template.label}": 
-            Local entered: ${hours}:${minutes}
+          console.log(`[ShiftNotification] User ${userId}, Shift "${template.label}":
+            Date: ${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}
+            Time (${timezone}): ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}
             Target UTC: ${shiftStartUTC.toISOString()}
             Current UTC: ${now.toISOString()}
             Diff minutes: ${minutesUntilShift} (Setting: ${minutesBefore})`);
